@@ -23,6 +23,7 @@ export const defaultOptions = {
   ignoreBinPackage: false,
   ignoreMatches: [
   ],
+  ignoresFile: '',
   ignoreDirs: [
     '.git',
     '.svn',
