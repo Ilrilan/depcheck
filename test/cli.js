@@ -22,6 +22,10 @@ function makeArgv(module, options) {
     argv.push(`--ignore-bin-package=${options.ignoreBinPackage}`);
   }
 
+  if (options.ignoresFile) {
+    argv.push(`--ignores-file=${path.join(testPath, options.ignoresFile)}`);
+  }
+
   if (options.ignoreMatches) {
     argv.push(`--ignores=${options.ignoreMatches.join(',')}`);
   }
@@ -53,14 +57,16 @@ function testCli(argv) {
     cli(
       argv,
       (data) => { log = data; },
-      (data) => { error = data; },
-      exitCode => resolve({
-        log,
-        error,
-        exitCode,
-        logs: log.split('\n').filter(line => line),
-        errors: error.split('\n').filter(line => line),
-      }),
+      (data) => { error = data.message ? data.message : data; },
+      (exitCode) => {
+        resolve({
+          log,
+          error,
+          exitCode,
+          logs: log.split('\n').filter(line => line),
+          errors: error.split('\n').filter(line => line),
+        });
+      },
     ));
 }
 
@@ -83,6 +89,19 @@ describe('depcheck command line', () => {
           exitCode.should.equal(0); // JSON output always return 0
         }));
   });
+
+  it('should use the ignores file', () =>
+    testCli(makeArgv('ignores_file', { ignoresFile: 'ignores_file' }))
+      .then(({ exitCode }) => {
+        exitCode.should.equal(0);
+      }));
+
+  it('should fail if the ingores file is not found', () =>
+    testCli(makeArgv('ignores_file', { ignoresFile: 'ignore_file' }))
+      .then(({ error, exitCode }) => {
+        error.should.containEql('An issue has happened reading the ignores file');
+        exitCode.should.equal(-1);
+      }));
 
   it('should output error when folder is not a package', () =>
     testCli([__dirname])
